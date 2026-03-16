@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SA-CTEX — South African Cyber Threat Exchange | National Malware Readiness Platform</title>
+<meta name="description" content="SA-CTEX: South Africa's National Cyber Threat Exchange for real-time malware intelligence sharing, IOC distribution, and coordinated defense. Designed for the CSIR SANCS26 Challenge.">
+<meta name="author" content="Asibonge Sanele Mlotshwa">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+--void:#020712;--deep:#060c1c;--card:#0a1228;--card-h:#0e1a38;--elev:#132248;
+--border:#12204a;--border-b:#1a3068;--border-g:rgba(0,200,150,0.06);
+--tp:#e0e8f8;--ts:#7a94c0;--tm:#354d80;--td:#1e3060;
+--emerald:#10b981;--emerald-g:rgba(16,185,129,0.1);--emerald-b:#34d399;
+--cyan:#06b6d4;--cyan-g:rgba(6,182,212,0.08);--cyan-b:#22d3ee;
+--red:#ef4444;--red-g:rgba(239,68,68,0.08);--red-b:#f87171;
+--orange:#f97316;--orange-g:rgba(249,115,22,0.07);
+--yellow:#eab308;--yellow-g:rgba(234,179,8,0.07);
+--green:#22c55e;--green-g:rgba(34,197,94,0.08);
+--purple:#8b5cf6;--purple-g:rgba(139,92,246,0.07);
+--blue:#3b82f6;--blue-g:rgba(59,130,246,0.08);
+--gold:#f59e0b;
+--fm:'IBM Plex Mono',monospace;--fd:'Space Grotesk',sans-serif;--fb:'DM Sans',sans-serif;
+--r:10px;--rs:6px;--rx:4px;
+}
+body{font-family:var(--fb);background:var(--void);color:var(--tp);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(16,185,129,0.02) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(6,182,212,0.015) 0%,transparent 50%);pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(16,185,129,0.008) 1px,transparent 1px),linear-gradient(90deg,rgba(16,185,129,0.008) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0}
+::selection{background:rgba(16,185,129,0.2);color:#fff}
+.app{position:relative;z-index:1;max-width:1500px;margin:0 auto;padding:10px 16px}
+
+/* System Bar */
+.sys{display:flex;align-items:center;justify-content:space-between;padding:4px 12px;margin-bottom:6px;background:rgba(10,18,40,0.8);border:1px solid var(--border);border-radius:var(--rs);font-family:var(--fm);font-size:9px}
+.sys-l{display:flex;gap:12px;color:var(--tm)}.sys-r{display:flex;gap:10px}
+.sd{display:inline-flex;align-items:center;gap:4px;color:var(--tm)}
+.sd::before{content:'';width:5px;height:5px;border-radius:50%}
+.sd.ok::before{background:var(--emerald);box-shadow:0 0 6px var(--emerald)}
+.sd.warn::before{background:var(--yellow);box-shadow:0 0 5px var(--yellow)}
+
+/* Header */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;margin-bottom:8px;border-bottom:1px solid var(--border)}
+.hdr-l{display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;border-radius:var(--rs);background:linear-gradient(135deg,rgba(16,185,129,0.3),rgba(6,182,212,0.15));display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:700;font-size:13px;color:var(--emerald-b);border:1px solid rgba(16,185,129,0.25);box-shadow:0 0 20px rgba(16,185,129,0.08);letter-spacing:-0.5px}
+.hdr-t{font-family:var(--fd);font-size:16px;font-weight:700;letter-spacing:-0.3px}.hdr-t span{color:var(--emerald)}
+.hdr-sub{font-size:9px;color:var(--tm);letter-spacing:2.5px;font-family:var(--fm);margin-top:1px}
+.hdr-r{display:flex;align-items:center;gap:10px}
+.hdr-s{display:flex;flex-direction:column;align-items:flex-end;font-family:var(--fm)}.hdr-sv{font-weight:700;font-size:12px}.hdr-sl{font-size:8px;color:var(--tm);letter-spacing:1px}
+.clock{font-family:var(--fm);font-size:11px;font-weight:600;color:var(--emerald-b);background:var(--card);border:1px solid var(--border-b);padding:6px 10px;border-radius:var(--rs);letter-spacing:1.5px}
+.sa-flag{display:flex;gap:2px;height:16px;align-items:center}
+.sa-flag div{height:12px;border-radius:1px}
+
+/* National Alert Banner */
+.natl-alert{display:none;align-items:center;gap:10px;padding:10px 16px;margin-bottom:8px;border-radius:var(--rs);animation:ap 2s ease infinite}
+.natl-alert.active{display:flex}
+.natl-alert.critical{background:linear-gradient(90deg,rgba(239,68,68,0.12),rgba(239,68,68,0.04));border:1px solid rgba(239,68,68,0.3)}
+.natl-alert.elevated{background:linear-gradient(90deg,rgba(249,115,22,0.1),rgba(249,115,22,0.03));border:1px solid rgba(249,115,22,0.25)}
+@keyframes ap{0%,100%{opacity:1}50%{opacity:0.85}}
+.na-icon{font-size:20px}.na-text{flex:1}.na-title{font-family:var(--fd);font-weight:700;font-size:13px}.na-msg{font-size:10px;color:var(--ts);margin-top:1px}
+.na-btn{padding:5px 12px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:#fff;border-radius:var(--rs);font-family:var(--fm);font-size:9px;font-weight:700;cursor:pointer;letter-spacing:1px}
+
+/* Tabs */
+.tabs{display:flex;gap:1px;margin-bottom:8px;border-bottom:1px solid var(--border);overflow-x:auto}
+.tab{padding:8px 14px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;font-family:var(--fm);cursor:pointer;color:var(--tm);border-bottom:2px solid transparent;transition:all 0.2s;user-select:none;white-space:nowrap}
+.tab:hover{color:var(--ts);border-bottom-color:var(--border-b)}
+.tab.active{color:var(--emerald-b);border-bottom-color:var(--emerald)}
+.tc{display:inline-flex;min-width:14px;height:14px;font-size:8px;border-radius:7px;margin-left:4px;padding:0 3px;font-weight:700;align-items:center;justify-content:center}
+.tc.r{background:var(--red-g);color:var(--red-b)}.tc.g{background:var(--emerald-g);color:var(--emerald-b)}.tc.b{background:var(--blue-g);color:var(--blue)}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:8px}
+.st{background:var(--card);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;border-left:3px solid var(--emerald);box-shadow:0 2px 8px rgba(0,0,0,0.2);transition:all 0.2s}
+.st:hover{background:var(--card-h);transform:translateY(-1px)}
+.st-v{font-family:var(--fd);font-size:20px;font-weight:700;line-height:1}.st-l{font-size:8px;color:var(--tm);font-family:var(--fm);letter-spacing:1.5px;margin-top:2px}
+.st-t{font-size:9px;font-family:var(--fm);font-weight:600;margin-top:3px}
+
+/* Panels */
+.pnl{display:none;animation:fp 0.3s ease}.pnl.active{display:block}
+@keyframes fp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* Grid layouts */
+.g21{display:grid;grid-template-columns:1fr 380px;gap:8px}
+.g12{display:grid;grid-template-columns:380px 1fr;gap:8px}
+.g11{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.g111{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+/* Cards */
+.cd{background:var(--card);border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+.cd-h{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border)}
+.cd-t{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--tm);font-family:var(--fm)}
+.cd-b{padding:12px}
+
+/* IOC Feed Items */
+.ioc{display:flex;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);transition:background 0.15s;font-size:11px}
+.ioc:hover{background:var(--card-h)}
+.ioc.new{animation:si 0.4s ease-out;background:rgba(16,185,129,0.02)}
+@keyframes si{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.ioc-type{width:28px;height:28px;border-radius:var(--rx);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.ioc-type.hash{background:var(--purple-g)}.ioc-type.ip{background:var(--red-g)}.ioc-type.domain{background:var(--blue-g)}.ioc-type.url{background:var(--orange-g)}.ioc-type.yara{background:var(--emerald-g)}
+.ioc-content{flex:1;min-width:0}
+.ioc-val{font-family:var(--fm);font-size:10px;color:var(--tp);word-break:break-all}
+.ioc-meta{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
+.badge{font-size:7px;font-weight:700;font-family:var(--fm);padding:1px 5px;border-radius:var(--rx);letter-spacing:0.5px}
+.b-tlp-red{background:rgba(239,68,68,0.15);color:#f87171}.b-tlp-amber{background:rgba(249,115,22,0.12);color:#fb923c}.b-tlp-green{background:rgba(34,197,94,0.12);color:#4ade80}.b-tlp-clear{background:rgba(148,163,184,0.1);color:#94a3b8}
+.b-mitre{background:var(--purple-g);color:var(--purple)}.b-sector{background:var(--cyan-g);color:var(--cyan-b)}.b-conf{background:var(--emerald-g);color:var(--emerald-b)}
+.b-crit{background:var(--red-g);color:var(--red-b)}.b-high{background:var(--orange-g);color:var(--orange)}.b-med{background:var(--yellow-g);color:var(--yellow)}.b-low{background:var(--green-g);color:var(--green)}
+.ioc-time{font-size:8px;color:var(--tm);font-family:var(--fm);margin-top:2px}
+
+/* Map */
+.map-container{position:relative;display:flex;align-items:center;justify-content:center;padding:8px}
+.map-container svg{max-width:100%;height:auto}
+.province-label{font-family:var(--fm);font-size:7px;fill:var(--ts);pointer-events:none}
+.threat-dot{animation:throb 2s ease infinite}
+@keyframes throb{0%,100%{r:4;opacity:1}50%{r:7;opacity:0.5}}
+
+/* Sector cards */
+.sector-card{padding:10px;border-radius:var(--rs);border:1px solid var(--border);background:var(--card);transition:all 0.2s;cursor:pointer}
+.sector-card:hover{background:var(--card-h);border-color:var(--border-b)}
+.sector-card.active{border-color:var(--emerald);background:var(--emerald-g)}
+.sector-name{font-size:12px;font-weight:600;font-family:var(--fd)}.sector-sub{font-size:9px;color:var(--tm);margin-top:2px;font-family:var(--fm)}
+.sector-stats{display:flex;gap:10px;margin-top:6px}
+.sector-stat{font-family:var(--fm);font-size:10px}.sector-stat b{font-size:13px;display:block}
+
+/* Malware panel */
+.mal-header{display:flex;align-items:center;gap:10px;padding:10px;background:var(--deep);border-bottom:1px solid var(--border)}
+.mal-icon{width:36px;height:36px;border-radius:var(--rs);background:var(--red-g);display:flex;align-items:center;justify-content:center;font-size:16px}
+.mal-name{font-family:var(--fm);font-weight:700;font-size:13px}.mal-type{font-size:10px;color:var(--tm);font-family:var(--fm)}
+.mal-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)}
+.mal-cell{background:var(--card);padding:8px 10px}
+.mal-cell-label{font-size:8px;color:var(--tm);font-family:var(--fm);letter-spacing:1px;margin-bottom:2px}
+.mal-cell-val{font-size:11px;font-family:var(--fm);color:var(--ts)}
+.mal-behavior{padding:8px 10px;border-bottom:1px solid var(--border);font-size:10px;font-family:var(--fm);color:var(--ts)}
+.mal-behavior::before{content:'▸ ';color:var(--red-b)}
+
+/* Capacity */
+.cap-metric{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border)}
+.cap-label{font-size:10px;color:var(--ts);font-family:var(--fm)}.cap-val{font-size:12px;font-weight:700;font-family:var(--fm)}
+.cap-bar{width:100%;height:6px;background:var(--elev);border-radius:3px;margin-top:4px;overflow:hidden}
+.cap-fill{height:100%;border-radius:3px;transition:width 1.5s ease}
+
+/* Chart */
+.chart-c{height:200px;position:relative}
+
+/* Footer */
+.footer{display:flex;justify-content:space-between;align-items:flex-end;padding-top:10px;margin-top:8px;border-top:1px solid var(--border);font-size:9px;color:var(--tm);font-family:var(--fm)}
+.footer a{color:var(--emerald);text-decoration:none}.footer a:hover{text-decoration:underline}
+.footer-l{display:flex;flex-direction:column;gap:1px}
+
+/* Responsive */
+@media(max-width:1100px){.g21,.g12{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){.stats{grid-template-columns:repeat(2,1fr)}.g11,.g111{grid-template-columns:1fr}.hdr{flex-direction:column;gap:6px;align-items:flex-start}.hdr-r{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- System Bar -->
+<div class="sys">
+  <div class="sys-l">
+    <span>SA-CTEX v1.0.0</span><span style="color:var(--border-b)">|</span>
+    <span>National Cyber Threat Exchange</span><span style="color:var(--border-b)">|</span>
+    <span>MISP Core + STIX/TAXII</span><span style="color:var(--border-b)">|</span>
+    <span id="sys-status">Status: Operational</span>
+  </div>
+  <div class="sys-r">
+    <div class="sd ok">MISP Core</div><div class="sd ok">IOC Feed</div><div class="sd ok">Sandbox</div><div class="sd warn">ISAC Sync</div><div class="sd ok">TLP Engine</div>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="logo">CT</div>
+    <div>
+      <div class="hdr-t">SA-CTEX <span>NATIONAL CYBER THREAT EXCHANGE</span></div>
+      <div class="hdr-sub">SOUTH AFRICAN CYBERSECURITY HUB • CSIR • REAL-TIME MALWARE INTELLIGENCE</div>
+    </div>
+  </div>
+  <div class="hdr-r">
+    <div class="hdr-s"><span class="hdr-sv" style="color:var(--red-b)" id="h-threats">47</span><span class="hdr-sl">ACTIVE THREATS</span></div>
+    <div class="hdr-s"><span class="hdr-sv" style="color:var(--emerald-b)" id="h-iocs">12,847</span><span class="hdr-sl">IOCs SHARED</span></div>
+    <div class="hdr-s"><span class="hdr-sv" style="color:var(--cyan-b)" id="h-orgs">218</span><span class="hdr-sl">ORGANIZATIONS</span></div>
+    <div class="clock" id="clock">--:--:-- SAST</div>
+    <div class="sa-flag" title="Republic of South Africa">
+      <div style="width:4px;background:#DE3831"></div><div style="width:4px;background:#FFFFFF"></div><div style="width:6px;background:#007A4D"></div><div style="width:4px;background:#FFB612"></div><div style="width:4px;background:#002395"></div><div style="width:4px;background:#000000"></div>
+    </div>
+  </div>
+</div>
+
+<!-- National Alert -->
+<div class="natl-alert elevated active" id="natl-alert">
+  <div class="na-icon">⚠️</div>
+  <div class="na-text">
+    <div class="na-title" style="color:var(--orange)">NATIONAL THREAT LEVEL: ELEVATED</div>
+    <div class="na-msg">Active ransomware campaign targeting SA financial sector — IOCs distributed to all ISAC members at 14:23 SAST</div>
+  </div>
+  <div style="display:flex;gap:4px">
+    <button class="na-btn" onclick="this.closest('.natl-alert').classList.remove('active')">DISMISS</button>
+    <button class="na-btn" style="background:var(--orange);border-color:var(--orange)" onclick="switchTab('ioc')">VIEW IOCs</button>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" data-tab="overview">National Overview</div>
+  <div class="tab" data-tab="ioc">IOC Feed <span class="tc r" id="tc-ioc">24</span></div>
+  <div class="tab" data-tab="sectors">Sector ISACs <span class="tc g">5</span></div>
+  <div class="tab" data-tab="malware">Malware Analysis</div>
+  <div class="tab" data-tab="capacity">Capacity Building</div>
+  <div class="tab" data-tab="timeline">Incident Timeline</div>
+</div>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="st" style="border-left-color:var(--red)"><div class="st-v" style="color:var(--red-b)" id="s-threats">47</div><div class="st-l">ACTIVE CAMPAIGNS</div><div class="st-t" style="color:var(--red)">▲ +8 this week</div></div>
+  <div class="st" style="border-left-color:var(--emerald)"><div class="st-v" style="color:var(--emerald-b)" id="s-iocs">12,847</div><div class="st-l">IOCs DISTRIBUTED</div><div class="st-t" style="color:var(--emerald)">▲ +342 today</div></div>
+  <div class="st" style="border-left-color:var(--cyan)"><div class="st-v" style="color:var(--cyan-b)">218</div><div class="st-l">CONNECTED ORGS</div><div class="st-t" style="color:var(--emerald)">▲ +12 this month</div></div>
+  <div class="st" style="border-left-color:var(--purple)"><div class="st-v" style="color:var(--purple)">5</div><div class="st-l">SECTOR ISACs</div><div class="st-t" style="color:var(--tm)">Finance, Energy, Gov, Telco, Transport</div></div>
+  <div class="st" style="border-left-color:var(--gold)"><div class="st-v" style="color:var(--gold)">2.4<span style="font-size:11px">min</span></div><div class="st-l">AVG DISTRIBUTION</div><div class="st-t" style="color:var(--emerald)">▼ -0.8min vs last month</div></div>
+  <div class="st" style="border-left-color:var(--blue)"><div class="st-v" style="color:var(--blue)">847</div><div class="st-l">ANALYSTS TRAINED</div><div class="st-t" style="color:var(--emerald)">▲ +156 this quarter</div></div>
+</div>
+
+<!-- ===== OVERVIEW PANEL ===== -->
+<div class="pnl active" id="pnl-overview">
+  <div class="g12">
+    <!-- Map -->
+    <div class="cd">
+      <div class="cd-h"><div class="cd-t">NATIONAL THREAT MAP — SOUTH AFRICA</div><div style="font-size:9px;color:var(--tm);font-family:var(--fm)" id="map-time">Updated: now</div></div>
+      <div class="map-container">
+        <svg viewBox="0 0 400 380" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-height:340px">
+          <!-- Simplified SA provinces -->
+          <defs>
+            <filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <!-- Western Cape -->
+          <path d="M80,300 L60,280 L50,260 L70,240 L100,230 L130,240 L140,270 L120,300 Z" fill="var(--card)" stroke="var(--border-b)" stroke-width="1" class="prov" data-name="Western Cape"/>
+          <text x="90" y="268" class="province-label">W. Cape</text>
+          <!-- Eastern Cape -->
+          <path d="M140,270 L130,240 L160,220 L200,215 L230,230 L240,260 L220,290 L180,300 L140,290 Z" fill="var(--card)" stroke="var(--border-b)" stroke-width="1" class="prov" data-name="Eastern Cape"/>
+          <text x="175" y="265" class="province-label">E. Cape</text>
+          <!-- Northern Cape -->
+          <path d="M50,260 L40,200 L60,140 L100,120 L140,130 L160,160 L150,200 L130,240 L100,230 L70,240 Z" fill="var(--card)" stroke="var(--border-b)" stroke-width="1" class="prov" data-name="Northern Cape"/>
+          <text x="90" y="185" class="province-label">N. Cape</text>
+          <!-- Free State -->
+          <path d="M160,160 L200,140 L240,150 L260,180 L240,210 L200,215 L160,220 L150,200 Z" fill="var(--card)" stroke="var(--border-b)" stroke-width="1" class="prov" data-name="Free State"/>
+          <text x="195" y="185" class="province-label">Free State</text>
+          <!-- KZN -->
+          <path d="M240,210 L260,180 L290,170 L320,180 L310,220 L280,240 L240,260 L230,230 Z" fill="var(--card)" stroke="var(--border-b)" stroke-width="1" class="prov" data-name="KwaZulu-Natal"/>
+          <text x="270" y="215" class="province-label">KZN</text>
+          <!-- Gauteng -->
+          <path d="M210,120 L240,115 L255,135 L245,155 L220,155 L205,140 Z" fill="var(--card-h)" stroke="var(--emerald)" stroke-width="1.5" class="prov" data-name="Gauteng"/>
+          <text x="218" y="140" class="province-label" style="fill:var(--emerald-b);font-weight:700">GP</text>
+          <!-- Mpumalanga -->
+          <path d="M255,135 L290,120 L320,140 L310,170 L290,170 L260,180 L245,155 Z" fill="var(--card)" stroke="var(--border-b)" stroke-width="1" class="prov" data-name="Mpumalanga"/>
+          <text x="280" y="155" class="province-label">Mpumalanga</text>
+          <!-- Limpopo -->
+          <path d="M180,80 L220,60 L280,70 L320,90 L290,120 L255,135 L240,115 L210,120 L190,105 Z" fill="var(--card)" stroke="var(--border-b)" stroke-width="1" class="prov" data-name="Limpopo"/>
+          <text x="240" y="95" class="province-label">Limpopo</text>
+          <!-- North West -->
+          <path d="M100,120 L140,130 L160,160 L200,140 L210,120 L190,105 L150,100 L120,105 Z" fill="var(--card)" stroke="var(--border-b)" stroke-width="1" class="prov" data-name="North West"/>
+          <text x="150" y="130" class="province-label">N. West</text>
+
+          <!-- Threat indicators -->
+          <circle cx="230" cy="135" r="5" fill="var(--red)" filter="url(#glow)" class="threat-dot"><title>Gauteng: 18 active threats</title></circle>
+          <circle cx="285" cy="200" r="4" fill="var(--orange)" filter="url(#glow)" class="threat-dot" style="animation-delay:0.5s"><title>KZN: 8 active threats</title></circle>
+          <circle cx="90" cy="260" r="3" fill="var(--yellow)" filter="url(#glow)" class="threat-dot" style="animation-delay:1s"><title>W. Cape: 5 active threats</title></circle>
+          <circle cx="190" cy="255" r="3" fill="var(--yellow)" filter="url(#glow)" class="threat-dot" style="animation-delay:0.3s"><title>E. Cape: 4 active threats</title></circle>
+          <circle cx="290" cy="140" r="3" fill="var(--orange)" filter="url(#glow)" class="threat-dot" style="animation-delay:0.7s"><title>Mpumalanga: 6 active threats</title></circle>
+          <circle cx="240" cy="80" r="2" fill="var(--yellow)" filter="url(#glow)" class="threat-dot" style="animation-delay:0.2s"><title>Limpopo: 3 active threats</title></circle>
+          <circle cx="200" cy="180" r="2" fill="var(--green)" class="threat-dot" style="animation-delay:1.2s"><title>Free State: 2 active threats</title></circle>
+          <circle cx="150" cy="120" r="1.5" fill="var(--green)" class="threat-dot" style="animation-delay:0.8s"><title>North West: 1 active threat</title></circle>
+
+          <!-- Legend -->
+          <circle cx="20" cy="340" r="4" fill="var(--red)"/><text x="30" y="343" style="font-size:7px;fill:var(--ts);font-family:var(--fm)">Critical (10+)</text>
+          <circle cx="100" cy="340" r="3" fill="var(--orange)"/><text x="108" y="343" style="font-size:7px;fill:var(--ts);font-family:var(--fm)">High (5-9)</text>
+          <circle cx="170" cy="340" r="3" fill="var(--yellow)"/><text x="178" y="343" style="font-size:7px;fill:var(--ts);font-family:var(--fm)">Medium (2-4)</text>
+          <circle cx="250" cy="340" r="2" fill="var(--green)"/><text x="258" y="343" style="font-size:7px;fill:var(--ts);font-family:var(--fm)">Low (0-1)</text>
+        </svg>
+      </div>
+    </div>
+    <!-- Right: Recent IOCs + Sector Summary -->
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="cd" style="flex:1">
+        <div class="cd-h"><div class="cd-t">LATEST IOCs — NATIONAL FEED</div><span class="badge b-tlp-green" style="font-size:8px">TLP:GREEN</span></div>
+        <div id="overview-iocs" style="max-height:200px;overflow-y:auto"></div>
+      </div>
+      <div class="cd">
+        <div class="cd-h"><div class="cd-t">TOP THREAT CATEGORIES</div></div>
+        <div class="cd-b" style="padding:8px"><div class="chart-c" style="height:160px"><canvas id="chart-categories"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== IOC FEED PANEL ===== -->
+<div class="pnl" id="pnl-ioc">
+  <div class="g21">
+    <div class="cd">
+      <div class="cd-h">
+        <div class="cd-t">INDICATOR OF COMPROMISE FEED — REAL TIME</div>
+        <div style="display:flex;gap:4px">
+          <span class="badge b-tlp-red">TLP:RED</span><span class="badge b-tlp-amber">TLP:AMBER</span><span class="badge b-tlp-green">TLP:GREEN</span><span class="badge b-tlp-clear">TLP:CLEAR</span>
+        </div>
+      </div>
+      <div id="ioc-feed" style="max-height:500px;overflow-y:auto"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="cd">
+        <div class="cd-h"><div class="cd-t">IOC DISTRIBUTION BY TYPE</div></div>
+        <div class="cd-b"><div class="chart-c" style="height:180px"><canvas id="chart-ioc-types"></canvas></div></div>
+      </div>
+      <div class="cd">
+        <div class="cd-h"><div class="cd-t">TOP MITRE ATT&CK TECHNIQUES</div></div>
+        <div id="mitre-list" style="max-height:200px;overflow-y:auto"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTORS PANEL ===== -->
+<div class="pnl" id="pnl-sectors">
+  <div class="g11">
+    <div class="cd">
+      <div class="cd-h"><div class="cd-t">SECTOR ISACs — FEDERATED INTELLIGENCE</div></div>
+      <div class="cd-b" style="display:flex;flex-direction:column;gap:6px" id="sector-list"></div>
+    </div>
+    <div class="cd">
+      <div class="cd-h"><div class="cd-t">SECTOR THREAT DISTRIBUTION</div></div>
+      <div class="cd-b"><div class="chart-c"><canvas id="chart-sectors"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MALWARE PANEL ===== -->
+<div class="pnl" id="pnl-malware">
+  <div class="g11">
+    <div class="cd">
+      <div class="mal-header">
+        <div class="mal-icon">🦠</div>
+        <div><div class="mal-name">SA-RANSOM-2026-0147</div><div class="mal-type">Ransomware • LockBit 4.0 Variant • First seen: 2026-03-10</div></div>
+        <span class="badge b-crit" style="font-size:9px;padding:3px 8px">CRITICAL</span>
+      </div>
+      <div class="mal-grid">
+        <div class="mal-cell"><div class="mal-cell-label">SHA-256</div><div class="mal-cell-val" style="font-size:9px;word-break:break-all">a1b2c3d4e5f6...7890abcdef1234567890abcdef12345678</div></div>
+        <div class="mal-cell"><div class="mal-cell-label">FILE SIZE</div><div class="mal-cell-val">2.4 MB (PE32 Executable)</div></div>
+        <div class="mal-cell"><div class="mal-cell-label">FIRST SUBMISSION</div><div class="mal-cell-val">SA-CTEX Finance ISAC</div></div>
+        <div class="mal-cell"><div class="mal-cell-label">AFFECTED SECTORS</div><div class="mal-cell-val">Finance, Government</div></div>
+        <div class="mal-cell"><div class="mal-cell-label">MITRE ATT&CK</div><div class="mal-cell-val">T1486 (Data Encrypted), T1059 (Command Scripting), T1562 (Impair Defenses)</div></div>
+        <div class="mal-cell"><div class="mal-cell-label">YARA RULE</div><div class="mal-cell-val" style="color:var(--emerald-b)">SA_CTEX_LOCKBIT4_2026_01 ✓ Distributed</div></div>
+      </div>
+      <div class="cd-h" style="border-top:1px solid var(--border)"><div class="cd-t">SANDBOX BEHAVIOR ANALYSIS</div></div>
+      <div class="mal-behavior">Creates mutex: Global\SA_LOCK_4_INIT</div>
+      <div class="mal-behavior">Enumerates network shares via WNetEnumResource</div>
+      <div class="mal-behavior">Drops ransom note to all user-writable directories</div>
+      <div class="mal-behavior">Attempts to delete Volume Shadow Copies (vssadmin.exe)</div>
+      <div class="mal-behavior">Connects to C2: 185.220.xx.xx:443 (TOR exit node)</div>
+      <div class="mal-behavior">Encrypts files with .locked extension using AES-256 + RSA-2048</div>
+      <div class="mal-behavior">Disables Windows Defender real-time protection via PowerShell</div>
+      <div class="mal-behavior">Modifies registry to disable Safe Mode boot options</div>
+    </div>
+    <div class="cd">
+      <div class="cd-h"><div class="cd-t">NETWORK IOCs FROM ANALYSIS</div></div>
+      <div id="mal-iocs"></div>
+      <div class="cd-h"><div class="cd-t">DETECTION COVERAGE</div></div>
+      <div class="cd-b"><div class="chart-c" style="height:160px"><canvas id="chart-detection"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CAPACITY PANEL ===== -->
+<div class="pnl" id="pnl-capacity">
+  <div class="g111">
+    <div class="cd">
+      <div class="cd-h"><div class="cd-t">TRAINING PIPELINE — SA CYBER DEFENDERS</div></div>
+      <div>
+        <div class="cap-metric"><span class="cap-label">🎓 First Responders Trained</span><span class="cap-val" style="color:var(--emerald-b)">423</span></div>
+        <div style="padding:0 10px"><div class="cap-bar"><div class="cap-fill" style="width:85%;background:var(--emerald)"></div></div></div>
+        <div class="cap-metric"><span class="cap-label">🔬 Professional Analysts Upskilled</span><span class="cap-val" style="color:var(--cyan-b)">156</span></div>
+        <div style="padding:0 10px"><div class="cap-bar"><div class="cap-fill" style="width:52%;background:var(--cyan)"></div></div></div>
+        <div class="cap-metric"><span class="cap-label">🏫 University Partners</span><span class="cap-val" style="color:var(--purple)">5 / 5</span></div>
+        <div style="padding:0 10px"><div class="cap-bar"><div class="cap-fill" style="width:100%;background:var(--purple)"></div></div></div>
+        <div class="cap-metric"><span class="cap-label">🎯 Bursaries Awarded</span><span class="cap-val" style="color:var(--gold)">38 / 50</span></div>
+        <div style="padding:0 10px"><div class="cap-bar"><div class="cap-fill" style="width:76%;background:var(--gold)"></div></div></div>
+        <div class="cap-metric"><span class="cap-label">🏆 Cyber Range Exercises</span><span class="cap-val">12</span></div>
+        <div style="padding:0 10px"><div class="cap-bar"><div class="cap-fill" style="width:60%;background:var(--blue)"></div></div></div>
+        <div class="cap-metric"><span class="cap-label">📜 SA-CTEX Certified</span><span class="cap-val" style="color:var(--emerald-b)">268</span></div>
+        <div style="padding:0 10px"><div class="cap-bar"><div class="cap-fill" style="width:67%;background:var(--emerald)"></div></div></div>
+      </div>
+    </div>
+    <div class="cd">
+      <div class="cd-h"><div class="cd-t">TRAINING BY PROVINCE</div></div>
+      <div class="cd-b"><div class="chart-c"><canvas id="chart-training"></canvas></div></div>
+    </div>
+    <div class="cd">
+      <div class="cd-h"><div class="cd-t">PARTNER INSTITUTIONS</div></div>
+      <div style="display:flex;flex-direction:column;gap:1px">
+        <div class="cap-metric"><span class="cap-label">🏛 CSIR</span><span class="cap-val" style="color:var(--emerald)">Lead Partner</span></div>
+        <div class="cap-metric"><span class="cap-label">🎓 Stellenbosch University</span><span class="cap-val" style="color:var(--emerald)">Active</span></div>
+        <div class="cap-metric"><span class="cap-label">🎓 UCT</span><span class="cap-val" style="color:var(--emerald)">Active</span></div>
+        <div class="cap-metric"><span class="cap-label">🎓 Wits</span><span class="cap-val" style="color:var(--emerald)">Active</span></div>
+        <div class="cap-metric"><span class="cap-label">🎓 TUT</span><span class="cap-val" style="color:var(--emerald)">Active</span></div>
+        <div class="cap-metric"><span class="cap-label">🎓 UKZN</span><span class="cap-val" style="color:var(--emerald)">Active</span></div>
+        <div class="cap-metric"><span class="cap-label">🛡 Cyber Security Institute</span><span class="cap-val" style="color:var(--emerald)">CTA Partner</span></div>
+        <div class="cap-metric"><span class="cap-label">🇳🇱 HCSS / Netherlands</span><span class="cap-val" style="color:var(--cyan)">Intl Partner</span></div>
+        <div class="cap-metric"><span class="cap-label">🇦🇺 ASD / Australia</span><span class="cap-val" style="color:var(--cyan)">Intl Partner</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TIMELINE PANEL ===== -->
+<div class="pnl" id="pnl-timeline">
+  <div class="cd">
+    <div class="cd-h"><div class="cd-t">NATIONAL INCIDENT TIMELINE — 2026</div></div>
+    <div id="timeline-list" style="max-height:500px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <div class="footer-l">
+    <div style="color:var(--ts);font-weight:600">Developed by <a href="#">Asibonge Sanele Mlotshwa</a> — BEngTech Mechatronic Engineering</div>
+    <div>National Malware Readiness • Threat Intelligence Sharing • CSIR SANCS26 Challenge</div>
+    <div style="color:var(--td)">Built on MISP Open Source • TLP/STIX/TAXII Standards • Zero commercial licensing costs</div>
+  </div>
+  <div style="text-align:right;display:flex;flex-direction:column;gap:1px">
+    <div>SA-CTEX v1.0.0 — Concept Prototype</div>
+    <div style="color:var(--td)">© 2026 Asibonge Mlotshwa • SANCS26</div>
+  </div>
+</div>
+</div>
+
+<script>
+// ===== DATA =====
+const IOC_POOL=[
+{type:'hash',icon:'#',val:'a1b2c3d4e5f67890abcdef1234567890',tlp:'amber',mitre:'T1486',sector:'Finance',conf:'97%',desc:'LockBit 4.0 ransomware payload'},
+{type:'ip',icon:'IP',val:'185.220.101.42',tlp:'green',mitre:'T1071',sector:'Finance',conf:'94%',desc:'C2 server — active since Mar 8'},
+{type:'domain',icon:'@',val:'update-srv.fintech-solutions[.]xyz',tlp:'green',mitre:'T1566',sector:'Finance',conf:'91%',desc:'Phishing domain targeting SA banks'},
+{type:'hash',icon:'#',val:'ef56789012345abcdef67890abcde1234',tlp:'amber',mitre:'T1059',sector:'Government',conf:'89%',desc:'PowerShell dropper — DoJ campaign'},
+{type:'ip',icon:'IP',val:'91.215.85.17',tlp:'red',mitre:'T1190',sector:'Energy',conf:'96%',desc:'Scanning Modbus ports on Eskom IP ranges'},
+{type:'url',icon:'🔗',val:'hxxps://docs-auth[.]co.za/login.php',tlp:'green',mitre:'T1566',sector:'Cross-Sector',conf:'88%',desc:'Credential harvesting — fake SA gov portal'},
+{type:'yara',icon:'Y',val:'rule SA_CTEX_INFOSTEALER_VIDAR_03',tlp:'clear',mitre:'T1555',sector:'Cross-Sector',conf:'N/A',desc:'YARA rule — Vidar infostealer variant targeting SA'},
+{type:'hash',icon:'#',val:'789abc012def3456789012345678abcd',tlp:'amber',mitre:'T1562',sector:'Telecoms',conf:'92%',desc:'Rootkit targeting Vodacom/MTN infrastructure'},
+{type:'domain',icon:'@',val:'sars-refund-portal[.]co.za',tlp:'green',mitre:'T1566',sector:'Government',conf:'95%',desc:'SARS impersonation phishing domain'},
+{type:'ip',icon:'IP',val:'45.33.94.88',tlp:'amber',mitre:'T1021',sector:'Transport',conf:'87%',desc:'Lateral movement source — Transnet network segment'},
+{type:'hash',icon:'#',val:'456def789012abc345678901234567ef',tlp:'green',mitre:'T1486',sector:'Finance',conf:'99%',desc:'Cl0p ransomware variant — MOVEit exploitation'},
+{type:'yara',icon:'Y',val:'rule SA_CTEX_BANKBOT_ZA_2026',tlp:'clear',mitre:'T1185',sector:'Finance',conf:'N/A',desc:'YARA rule — SA banking trojan mobile variant'},
+];
+
+const SECTORS=[
+{name:'SA-CTEX Finance',icon:'🏦',orgs:48,iocs:4230,threats:18,status:'active',color:'var(--blue)',entities:'SARB, Major Banks, Insurers, Payment Providers'},
+{name:'SA-CTEX Energy',icon:'⚡',orgs:12,iocs:1890,threats:9,status:'active',color:'var(--gold)',entities:'Eskom, IPPs, NERSA, Municipal Utilities'},
+{name:'SA-CTEX Government',icon:'🏛',orgs:67,iocs:3100,threats:11,status:'active',color:'var(--purple)',entities:'SITA, National Departments, Provincial Gov'},
+{name:'SA-CTEX Telecoms',icon:'📡',orgs:23,iocs:2180,threats:6,status:'active',color:'var(--cyan-b)',entities:'Vodacom, MTN, Telkom, ISPs, ICASA'},
+{name:'SA-CTEX Transport',icon:'🚂',orgs:8,iocs:1447,threats:3,status:'active',color:'var(--emerald-b)',entities:'Transnet, SANRAL, ACSA, Prasa'},
+];
+
+const MITRE_TECHNIQUES=[
+{id:'T1566',name:'Phishing',count:342,pct:27},{id:'T1486',name:'Data Encrypted for Impact',count:189,pct:15},
+{id:'T1059',name:'Command & Scripting Interpreter',count:156,pct:12},{id:'T1071',name:'Application Layer Protocol',count:134,pct:11},
+{id:'T1562',name:'Impair Defenses',count:98,pct:8},{id:'T1190',name:'Exploit Public-Facing App',count:87,pct:7},
+{id:'T1021',name:'Remote Services',count:76,pct:6},{id:'T1555',name:'Credentials from Password Stores',count:65,pct:5},
+];
+
+const TIMELINE=[
+{date:'Mar 10',sev:'CRITICAL',title:'LockBit 4.0 campaign targeting SA financial sector',desc:'Multiple banks report ransomware delivery via phishing. SA-CTEX distributed 47 IOCs within 3 minutes of first report.',sector:'Finance'},
+{date:'Mar 8',sev:'HIGH',title:'Modbus scanning detected on Eskom IP ranges',desc:'Coordinated scanning of industrial control systems from Eastern European IP ranges. Energy ISAC alerted.',sector:'Energy'},
+{date:'Mar 5',sev:'HIGH',title:'SARS impersonation phishing campaign',desc:'Mass phishing campaign using fake SARS tax refund portals. 12,000+ emails detected. Domain IOCs distributed to all ISACs.',sector:'Cross-Sector'},
+{date:'Mar 3',sev:'MEDIUM',title:'Vidar infostealer variant targeting SA credentials',desc:'New variant of Vidar infostealer specifically harvesting SA banking credentials. YARA rule distributed.',sector:'Finance'},
+{date:'Feb 28',sev:'CRITICAL',title:'Transnet network intrusion attempt',desc:'Lateral movement detected from compromised vendor account. Transport ISAC coordinated response with SAPS Cybercrime.',sector:'Transport'},
+{date:'Feb 25',sev:'HIGH',title:'Government department data exfiltration',desc:'Anomalous API calls detected at provincial government. 15-day dwell time before detection. Forensics by CSIR.',sector:'Government'},
+{date:'Feb 20',sev:'MEDIUM',title:'MTN infrastructure rootkit discovery',desc:'Previously unknown rootkit found on telecoms infrastructure. Telecoms ISAC shared hashes and YARA rules.',sector:'Telecoms'},
+{date:'Feb 15',sev:'LOW',title:'SA Malware Challenge 2026 — results published',desc:'Annual national competition completed. 234 participants across 28 teams. Top talent identified for CSIR internships.',sector:'Capacity'},
+];
+
+const MAL_IOCS=[
+{type:'ip',val:'185.220.101.42:443',desc:'Primary C2 — TOR exit node (Netherlands)'},
+{type:'ip',val:'91.215.85.17:8443',desc:'Secondary C2 — bulletproof hosting (Moldova)'},
+{type:'domain',val:'update-srv.fintech-solutions[.]xyz',desc:'Payload delivery domain'},
+{type:'domain',val:'key-recovery[.]onion',desc:'Ransom payment portal (TOR)'},
+{type:'hash',val:'a1b2c3d4...7890',desc:'Main payload SHA-256'},
+{type:'hash',val:'ef567890...bcde',desc:'PowerShell dropper SHA-256'},
+];
+
+// ===== CLOCK =====
+setInterval(()=>{const d=new Date();document.getElementById('clock').textContent=d.toTimeString().split(' ')[0]+' SAST';},1000);
+
+// ===== TABS =====
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('active',t.dataset.tab===name);});
+  document.querySelectorAll('.pnl').forEach(p=>{p.classList.toggle('active',p.id===`pnl-${name}`);});
+}
+document.querySelectorAll('.tab').forEach(t=>{t.addEventListener('click',()=>switchTab(t.dataset.tab));});
+
+// ===== IOC RENDERING =====
+function renderIOCs(containerId,items,limit){
+  const c=document.getElementById(containerId);if(!c)return;
+  const tlpMap={red:'b-tlp-red',amber:'b-tlp-amber',green:'b-tlp-green',clear:'b-tlp-clear'};
+  c.innerHTML=items.slice(0,limit).map((ioc,i)=>`
+    <div class="ioc ${i===0?'new':''}">
+      <div class="ioc-type ${ioc.type}"><span style="font-family:var(--fm);font-size:9px;font-weight:700;color:var(--ts)">${ioc.icon}</span></div>
+      <div class="ioc-content">
+        <div class="ioc-val">${ioc.val}</div>
+        <div class="ioc-meta">
+          <span class="badge ${tlpMap[ioc.tlp]}">TLP:${ioc.tlp.toUpperCase()}</span>
+          <span class="badge b-mitre">${ioc.mitre}</span>
+          <span class="badge b-sector">${ioc.sector}</span>
+          ${ioc.conf!=='N/A'?`<span class="badge b-conf">${ioc.conf}</span>`:''}
+        </div>
+        <div class="ioc-time">${ioc.desc}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Initial renders
+renderIOCs('overview-iocs',IOC_POOL,6);
+renderIOCs('ioc-feed',IOC_POOL,12);
+
+// Add new IOCs periodically
+setInterval(()=>{
+  const ioc=IOC_POOL[Math.floor(Math.random()*IOC_POOL.length)];
+  const newIoc={...ioc,val:ioc.val.replace(/[0-9a-f]{4}/,Math.random().toString(16).slice(2,6))};
+  IOC_POOL.unshift(newIoc);if(IOC_POOL.length>50)IOC_POOL.pop();
+  renderIOCs('overview-iocs',IOC_POOL,6);
+  renderIOCs('ioc-feed',IOC_POOL,12);
+  const count=parseInt(document.getElementById('tc-ioc').textContent)+1;
+  document.getElementById('tc-ioc').textContent=count;
+},5000);
+
+// ===== MITRE LIST =====
+document.getElementById('mitre-list').innerHTML=MITRE_TECHNIQUES.map(t=>`
+  <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border);font-size:10px">
+    <span class="badge b-mitre">${t.id}</span>
+    <span style="flex:1;color:var(--ts);font-family:var(--fm)">${t.name}</span>
+    <span style="color:var(--tp);font-family:var(--fm);font-weight:700">${t.count}</span>
+    <div style="width:60px;height:4px;background:var(--elev);border-radius:2px;overflow:hidden"><div style="height:100%;width:${t.pct*3}%;background:var(--purple);border-radius:2px"></div></div>
+  </div>
+`).join('');
+
+// ===== SECTORS =====
+document.getElementById('sector-list').innerHTML=SECTORS.map((s,i)=>`
+  <div class="sector-card ${i===0?'active':''}" onclick="this.parentElement.querySelectorAll('.sector-card').forEach(c=>c.classList.remove('active'));this.classList.add('active')">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="sector-name">${s.icon} ${s.name}</div>
+      <span class="badge" style="background:var(--emerald-g);color:var(--emerald)">${s.status.toUpperCase()}</span>
+    </div>
+    <div class="sector-sub">${s.entities}</div>
+    <div class="sector-stats">
+      <div class="sector-stat" style="color:var(--cyan-b)"><b>${s.orgs}</b>Orgs</div>
+      <div class="sector-stat" style="color:var(--emerald-b)"><b>${s.iocs.toLocaleString()}</b>IOCs</div>
+      <div class="sector-stat" style="color:var(--red-b)"><b>${s.threats}</b>Threats</div>
+    </div>
+  </div>
+`).join('');
+
+// ===== MALWARE IOCs =====
+document.getElementById('mal-iocs').innerHTML=MAL_IOCS.map(m=>`
+  <div style="display:flex;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border);font-size:10px;align-items:center">
+    <span class="badge" style="background:var(--${m.type==='ip'?'red':'blue'}-g);color:var(--${m.type==='ip'?'red-b':'blue'})">${m.type.toUpperCase()}</span>
+    <span style="font-family:var(--fm);color:var(--tp);font-size:9px">${m.val}</span>
+    <span style="color:var(--tm);font-size:9px;margin-left:auto">${m.desc}</span>
+  </div>
+`).join('');
+
+// ===== TIMELINE =====
+const sevColors={CRITICAL:'var(--red-b)',HIGH:'var(--orange)','MEDIUM':'var(--yellow)',LOW:'var(--green)'};
+const sevBg={CRITICAL:'var(--red-g)',HIGH:'var(--orange-g)','MEDIUM':'var(--yellow-g)',LOW:'var(--green-g)'};
+document.getElementById('timeline-list').innerHTML=TIMELINE.map(t=>`
+  <div style="display:flex;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border)">
+    <div style="text-align:center;min-width:50px">
+      <div style="font-family:var(--fm);font-size:11px;font-weight:700;color:var(--tp)">${t.date}</div>
+      <div style="font-family:var(--fm);font-size:8px;color:var(--tm)">2026</div>
+    </div>
+    <div style="width:3px;border-radius:2px;background:${sevColors[t.sev]};flex-shrink:0"></div>
+    <div style="flex:1">
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:3px">
+        <span class="badge" style="background:${sevBg[t.sev]};color:${sevColors[t.sev]}">${t.sev}</span>
+        <span class="badge b-sector">${t.sector}</span>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:var(--tp);margin-bottom:2px">${t.title}</div>
+      <div style="font-size:10px;color:var(--ts);line-height:1.4">${t.desc}</div>
+    </div>
+  </div>
+`).join('');
+
+// ===== CHARTS =====
+// Categories
+new Chart(document.getElementById('chart-categories'),{type:'doughnut',data:{labels:['Ransomware','Phishing','Infostealers','C2 Infrastructure','Rootkits','Other'],datasets:[{data:[34,27,18,12,5,4],backgroundColor:['#ef4444','#3b82f6','#f97316','#8b5cf6','#eab308','#64748b'],borderColor:'#0a1228',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'right',labels:{color:'#7a94c0',font:{family:'IBM Plex Mono',size:9},padding:6,usePointStyle:true,pointStyleWidth:6}}}}});
+
+// IOC Types
+new Chart(document.getElementById('chart-ioc-types'),{type:'bar',data:{labels:['File Hashes','IP Addresses','Domains','URLs','YARA Rules','Sigma Rules'],datasets:[{data:[4200,3100,2800,1400,890,457],backgroundColor:['#8b5cf6','#ef4444','#3b82f6','#f97316','#10b981','#06b6d4'],borderRadius:4,barThickness:20}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(18,32,74,0.5)'},ticks:{color:'#354d80',font:{family:'IBM Plex Mono',size:9}}},y:{grid:{display:false},ticks:{color:'#7a94c0',font:{family:'IBM Plex Mono',size:9}}}}}});
+
+// Sectors
+new Chart(document.getElementById('chart-sectors'),{type:'bar',data:{labels:SECTORS.map(s=>s.name.replace('SA-CTEX ','')),datasets:[{label:'IOCs',data:SECTORS.map(s=>s.iocs),backgroundColor:['#3b82f6','#f59e0b','#8b5cf6','#22d3ee','#34d399'],borderRadius:4,barThickness:24},{label:'Active Threats',data:SECTORS.map(s=>s.threats*100),backgroundColor:['rgba(59,130,246,0.3)','rgba(245,158,11,0.3)','rgba(139,92,246,0.3)','rgba(34,211,238,0.3)','rgba(52,211,153,0.3)'],borderRadius:4,barThickness:24}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a94c0',font:{family:'IBM Plex Mono',size:9}}}},scales:{x:{grid:{display:false},ticks:{color:'#7a94c0',font:{family:'IBM Plex Mono',size:9}}},y:{grid:{color:'rgba(18,32,74,0.5)'},ticks:{color:'#354d80',font:{family:'IBM Plex Mono',size:9}}}}}});
+
+// Detection Coverage
+new Chart(document.getElementById('chart-detection'),{type:'bar',data:{labels:['CrowdStrike','Microsoft','Kaspersky','Sophos','Trend Micro','ESET','Avast','McAfee'],datasets:[{data:[98,95,94,91,88,85,82,79],backgroundColor:function(ctx){const v=ctx.raw;return v>90?'#22c55e':v>80?'#eab308':'#ef4444';},borderRadius:3,barThickness:14}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{max:100,grid:{color:'rgba(18,32,74,0.5)'},ticks:{color:'#354d80',font:{family:'IBM Plex Mono',size:8},callback:v=>v+'%'}},y:{grid:{display:false},ticks:{color:'#7a94c0',font:{family:'IBM Plex Mono',size:8}}}}}});
+
+// Training by Province
+new Chart(document.getElementById('chart-training'),{type:'bar',data:{labels:['Gauteng','W. Cape','KZN','E. Cape','Mpumalanga','Limpopo','Free State','N. West','N. Cape'],datasets:[{label:'First Responders',data:[120,85,72,45,35,28,20,12,6],backgroundColor:'#10b981',borderRadius:3},{label:'Professional',data:[48,32,28,18,10,8,6,4,2],backgroundColor:'#8b5cf6',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a94c0',font:{family:'IBM Plex Mono',size:9}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#7a94c0',font:{family:'IBM Plex Mono',size:8}}},y:{stacked:true,grid:{color:'rgba(18,32,74,0.5)'},ticks:{color:'#354d80',font:{family:'IBM Plex Mono',size:9}}}}}});
+</script>
+</body>
+</html>
